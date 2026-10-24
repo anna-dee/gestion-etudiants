@@ -2,13 +2,23 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
+import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-only-secret-key")
 DEBUG = os.getenv("DJANGO_DEBUG", "1") == "1"
-ALLOWED_HOSTS = ["*"] if DEBUG else os.getenv("DJANGO_ALLOWED_HOSTS", "").split(",")
+
+ALLOWED_HOSTS = (
+    ["*"]
+    if DEBUG
+    else [
+        host.strip()
+        for host in os.getenv("DJANGO_ALLOWED_HOSTS", "").split(",")
+        if host.strip()
+    ]
+)
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -52,7 +62,15 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-if os.getenv("DB_ENGINE", "mysql") == "sqlite":
+if os.getenv("DATABASE_URL"):
+    DATABASES = {
+        "default": dj_database_url.parse(
+            os.getenv("DATABASE_URL"),
+            conn_max_age=600,
+            ssl_require=True,
+        )
+    }
+elif os.getenv("DB_ENGINE", "mysql") == "sqlite":
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
@@ -71,7 +89,6 @@ else:
             "OPTIONS": {"charset": "utf8mb4"},
         }
     }
-
 AUTH_PASSWORD_VALIDATORS = []
 
 LANGUAGE_CODE = "fr-fr"
@@ -80,6 +97,7 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {
